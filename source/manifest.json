@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+  "name": "Browser Automaton",
+  "description": "Run remote script to do browser automation",
+  "version": "1.0",
+  "icons": {
+	"16": "application-x-executable-16.png",
+        "24": "application-x-executable-24.png",
+        "32": "application-x-executable-32.png",
+        "48": "application-x-executable-48.png",
+        "128": "application-x-executable-128.png"
+   },
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "http://*/*",
+    "https://*/*",
+    "webNavigation",
+    "alarms"
+  ],
+  "background": {
+    "scripts": ["application.js"],
+    "persistent": true	
+  },
+  "browser_action": {
+    "default_icon": "application-x-executable-128.png",
+    "default_title": "Browser Automaton"
+  },
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
+}
