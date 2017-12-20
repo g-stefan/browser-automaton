@@ -17,8 +17,10 @@
 			return btoa("return ("+fnHelloWorld+").apply(this,arguments);");
 		};
 
-		function fnHelloWorld(){
-			alert("Hello world!");
+		function fnHelloWorld(tabId){
+			chrome.tabs.executeScript(tabId, {
+				code: "alert(\"Hello World!\");"
+			});
 		};
 	</script>
 </head>
