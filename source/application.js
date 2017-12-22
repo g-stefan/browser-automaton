@@ -80,7 +80,7 @@ BrowserAutomaton.procesLink=function(tabId) {
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 	if (changeInfo.status=="complete") {
 		if(tab.url.indexOf("extension=23ab9c0e7b432f42000005202e2cfa11889bd299e36232cc53dbc91bc384f9b3")>=0) {
-			if(tab.url.indexOf("://localhost:14002/")>=0) {
+			if(tab.url.indexOf("://localhost:14001/")>=0) {
 				BrowserAutomaton.procesLink(tabId);
 				return;
 			};
