@@ -77,26 +77,38 @@ BrowserAutomaton.procesLink=function(tabId) {
 	});
 };
 
-chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-	if (changeInfo.status=="complete") {
-		if(tab.url.indexOf("extension=23ab9c0e7b432f42000005202e2cfa11889bd299e36232cc53dbc91bc384f9b3")>=0) {
-			if(tab.url.indexOf("://localhost:14001/")>=0) {
-				BrowserAutomaton.procesLink(tabId);
-				return;
-			};
-			BrowserAutomaton.getOptions(function() {
-				if(Array.isArray(BrowserAutomaton.allowedLink)) {
-					for(k=0; k<BrowserAutomaton.allowedLink.length; ++k) {
-						if(BrowserAutomaton.allowedLink[k].length>4) {
-							if(tab.url.indexOf("://"+BrowserAutomaton.allowedLink[k])>=0) {
-								BrowserAutomaton.procesLink(tabId);
-								return;
-							};
+BrowserAutomaton.procesTab=function(tabId, tab) {
+	if(tab.url.indexOf("extension=23ab9c0e7b432f42000005202e2cfa11889bd299e36232cc53dbc91bc384f9b3")>=0) {
+		if(tab.url.indexOf("://localhost:14001/")>=0) {
+			BrowserAutomaton.procesLink(tabId);
+			return;
+		};
+		BrowserAutomaton.getOptions(function() {
+			if(Array.isArray(BrowserAutomaton.allowedLink)) {
+				for(k=0; k<BrowserAutomaton.allowedLink.length; ++k) {
+					if(BrowserAutomaton.allowedLink[k].length>4) {
+						if(tab.url.indexOf("://"+BrowserAutomaton.allowedLink[k])>=0) {
+							BrowserAutomaton.procesLink(tabId);
+							return;
 						};
 					};
 				};
-			});
-		};
+			};
+		});
+	};
+};
+
+chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+	if (changeInfo.status=="complete") {
+		BrowserAutomaton.procesTab(tabId, tab);
+	};
+});
+
+//
+
+chrome.tabs.getAllInWindow(null, function(tabs) {
+	for(var k=0; k<tabs.length; ++k) {
+		BrowserAutomaton.procesTab(tabs[k].id, tabs[k]);
 	};
 });
 

@@ -1,4 +1,4 @@
 build=9
 date=2017-12-25
 time=13:48:45
-version=1.5.0
+version=1.6.0
