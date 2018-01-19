@@ -51,15 +51,20 @@
 				var el=document.getElementById("helloworld");
 				el.innerHTML="Hello world!";
 
-				this.firewall.deny[this.firewall.deny.length]="www\\.facebook\\.com";
-				this.protect.url[this.protect.url.length]="www\\.imdb\\.com";
-				this.protect.code="("+protect+")();";
+				return {
+					firewall:{
+						denyAdd:["www\\.facebook\\.com"]
+					},
+					protect:{
+						urlAdd:["www\\.imdb\\.com"],
+						code: "("+protect+")();"
+					}
+				};
 
-				return this;
 			};
 
 			var processUrl=function(){
-
+				var id=this.id;
 				var protectCount=15;
 				var protectDisable=function(){
 					var el=document.getElementById("browser-automaton-protect");
@@ -67,17 +72,24 @@
 						if(protectCount>0){
 							el.innerHTML = "<center><div style='font-size:24px;font-weright:bold;top:240px;width:320px;background-color:white;line-height:48px;position:relative;border-radius:8px;'>Protected - "+protectCount+"</div></center>";
 							--protectCount;
-							setTimeout(function(){
+							setTimeout(function(){								
 								protectDisable();
 							},1000);						
 							return;
 						};
 						document.body.removeChild(el);
+						chrome.runtime.sendMessage({
+							id:id,
+							protect:{
+								isProtected: false
+							}
+						});
 					};
 				};
 
+				console.log(this.protect.isProtected);
 				if(this.protect.isProtected){
-					protectDisable();					
+					protectDisable();
 				};
 
 				if(typeof(this.count)=="undefined"){

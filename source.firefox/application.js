@@ -27,11 +27,105 @@ BrowserAutomaton.getOptions=function(fnNext) {
 };
 
 BrowserAutomaton.states=[];
+BrowserAutomaton.stringEndsWith=function(str, suffix){
+    return str.indexOf(suffix, str.length - suffix.length) === (str.length - suffix.length);
+};
+
+BrowserAutomaton.mergeObject=function(obj1,obj2){
+	if(typeof(obj2)==="object"){
+		if(obj2 != null){
+			Object.keys(obj2).forEach(function(key) {
+				if(!Array.isArray(obj2[key])){
+					if(typeof(obj2[key])==="object"){
+						if(obj2[key] == null){
+							obj1[key]=obj2[key];
+							return;
+						};
+						if(typeof(obj1[key])!=="object"){
+							obj1[key]={};
+						};
+						BrowserAutomaton.mergeObject(obj1[key],obj2[key]);
+						return;
+					};
+				};
+				if(BrowserAutomaton.stringEndsWith(key,"Add")){
+					var subKey=key.substring(0,key.length-3);
+					BrowserAutomaton.mergeArray(obj1[subKey],obj2[key]);
+					return;
+				};
+				if(BrowserAutomaton.stringEndsWith(key,"Del")){
+					var subKey=key.substring(0,key.length-3);
+					BrowserAutomaton.removeFromArray(obj1[subKey],obj2[key]);
+					return;
+				};
+				obj1[key]=obj2[key];				
+			});
+		};
+	};
+};
+
+BrowserAutomaton.mergeArray=function(array1,array2){
+	if(Array.isArray(array1)){
+		if(Array.isArray(array2)){
+			for(var k=0;k<array2.length;++k){
+				var found=false;
+				for(var m=0;m<array1.length;++m){
+					if(array1[m]===array2[k]){
+						found=true;
+						break;
+					};
+				};
+				if(!found){
+					array1[array1.length]=array2[k];
+				};
+			};
+		};
+	};
+};
+
+BrowserAutomaton.removeFromArray=function(array1,array2){
+	if(Array.isArray(array1)){
+		if(Array.isArray(array2)){
+			for(var k=0;k<array2.length;++k){
+				var index=-1;
+				for(var m=0;m<array1.length;++m){
+					if(array1[m]===array2[k]){
+						index=m;
+						break;
+					};
+				};
+				if(index>=0){
+					delete array1[found];
+				};
+			};
+		};
+	};
+};
+
+BrowserAutomaton.updateState=function(state){
+	if(state.protect){
+		if(Array.isArray(state.protect.urlAdd)){
+			BrowserAutomaton.mergeArray(state.protect.url,state.protect.urlAdd);
+		};
+		if(Array.isArray(state.protect.urlDel)){
+			BrowserAutomaton.removeFromArray(state.protect.url,state.protect.urlDel);
+		};
+	};
+	if(state.firewall){
+		if(Array.isArray(state.firewall.allowAdd)){
+			BrowserAutomaton.mergeArray(state.protect.url,state.protect.firewallAdd);
+		};
+		if(Array.isArray(state.protect.urlDel)){
+			BrowserAutomaton.removeFromArray(state.protect.url,state.protect.urlDel);
+		};
+	};
+};
 
 BrowserAutomaton.processState=function(tabId,index,url,fnName){
 	if(typeof(BrowserAutomaton.states[index].code)==="undefined"){
 		return;
 	};
+	BrowserAutomaton.states[index].state.id=tabId;
 	BrowserAutomaton.states[index].state.url=url;
 	chrome.tabs.executeScript(tabId, {
 		matchAboutBlank: true,
@@ -45,7 +139,7 @@ BrowserAutomaton.processState=function(tabId,index,url,fnName){
 			if(typeof(code)==="undefined"){
 				return;
 			};
-			Object.assign(BrowserAutomaton.states[index].state,code);
+			BrowserAutomaton.mergeObject(BrowserAutomaton.states[index].state,code);
 			if(BrowserAutomaton.states[index].state.processEnd){
 				delete BrowserAutomaton.states[index];
 			};
@@ -123,6 +217,7 @@ BrowserAutomaton.processResponse=function(tabId,url) {
 				var index=BrowserAutomaton.states.length;
 				BrowserAutomaton.states[index]={
 					state:{
+						id: tabId,
 						firewall:{
 							url: "about:blank",
 							allow: [],
@@ -316,6 +411,25 @@ chrome.webNavigation.onCommitted.addListener(function(details){
 chrome.tabs.query({currentWindow:true,status:"complete"},function(tabs) {
 	for(var k=0; k<tabs.length; ++k) {
 		BrowserAutomaton.processTab(tabs[k].id, tabs[k]);
+	};
+});
+
+chrome.runtime.onMessage.addListener(function(request, sender){
+	if(sender.tab){
+		if(typeof(request)!="undefined"){
+			for(var k=0;k<BrowserAutomaton.states.length;++k){
+				if(BrowserAutomaton.states[k].state.id==sender.tab.id){
+					if(typeof(request)==="object"){
+						if(request!=null){
+							if(request.id==BrowserAutomaton.states[k].state.id){
+								BrowserAutomaton.mergeObject(BrowserAutomaton.states[k].state,request);
+							};
+						};
+					};
+					break;
+				};
+			};
+		};
 	};
 });
 
