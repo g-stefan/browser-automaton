@@ -1,4 +1,0 @@
-build=13
-date=2018-01-19
-time=13:02:40
-version=2.1.0
