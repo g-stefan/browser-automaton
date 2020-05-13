@@ -126,6 +126,7 @@ BrowserAutomaton.processState=function(tabId,index,url,fnName){
 	if(typeof(BrowserAutomaton.states[index].code)==="undefined"){
 		return;
 	};
+	BrowserAutomaton.states[index].state.index=index;
 	BrowserAutomaton.states[index].state.id=tabId;
 	BrowserAutomaton.states[index].state.url=url;
 	chrome.tabs.executeScript(tabId, {
@@ -218,6 +219,7 @@ BrowserAutomaton.processResponse=function(tabId,url) {
 				var index=BrowserAutomaton.states.length;
 				BrowserAutomaton.states[index]={
 					state:{
+						index: index,
 						id: tabId,
 						firewall:{
 							url: "about:blank",
@@ -394,7 +396,6 @@ chrome.webNavigation.onCommitted.addListener(function(details){
 	};
 });
 
-
 chrome.tabs.query({currentWindow:true,status:"complete"},function(tabs) {
 	for(var k=0; k<tabs.length; ++k) {
 		BrowserAutomaton.processTab(tabs[k].id, tabs[k]);
@@ -404,16 +405,20 @@ chrome.tabs.query({currentWindow:true,status:"complete"},function(tabs) {
 chrome.runtime.onMessage.addListener(function(request, sender){
 	if(sender.tab){
 		if(typeof(request)!="undefined"){
-			for(var k=0;k<BrowserAutomaton.states.length;++k){
-				if(BrowserAutomaton.states[k].state.id==sender.tab.id){
-					if(typeof(request)==="object"){
-						if(request!=null){
+			if(typeof(request)==="object"){
+				if(request!=null){
+					if(typeof(request.index)!="undefined"){
+						BrowserAutomaton.mergeObject(BrowserAutomaton.states[request.index].state,request);
+						return;
+					};
+					for(var k=0;k<BrowserAutomaton.states.length;++k){
+						if(BrowserAutomaton.states[k].state.id==sender.tab.id){
 							if(request.id==BrowserAutomaton.states[k].state.id){
 								BrowserAutomaton.mergeObject(BrowserAutomaton.states[k].state,request);
 							};
+							break;
 						};
 					};
-					break;
 				};
 			};
 		};
