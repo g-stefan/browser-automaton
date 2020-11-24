@@ -7,7 +7,7 @@
 // The MIT License (MIT) <http://opensource.org/licenses/MIT>
 //
 
-// Chrome extension
+// Firefox extension
 
 var BrowserAutomaton= {};
 
@@ -27,7 +27,6 @@ BrowserAutomaton.getOptions=function(fnNext) {
 };
 
 BrowserAutomaton.states=[];
-
 BrowserAutomaton.stringEndsWith=function(str, suffix){
     return str.indexOf(suffix, str.length - suffix.length) === (str.length - suffix.length);
 };
@@ -122,13 +121,15 @@ BrowserAutomaton.updateState=function(state){
 	};
 };
 
-BrowserAutomaton.processState=function(tabId,index,url,fnName){
+BrowserAutomaton.processState=function(tabId,index,url,fnName,openerTabId){
 	if(typeof(BrowserAutomaton.states[index].code)==="undefined"){
 		return;
 	};
 	BrowserAutomaton.states[index].state.index=index;
 	BrowserAutomaton.states[index].state.id=tabId;
+	BrowserAutomaton.states[index].state.parentId=openerTabId;
 	BrowserAutomaton.states[index].state.url=url;
+	BrowserAutomaton.states[index].state.version="3.0";
 	chrome.tabs.executeScript(tabId, {
 		matchAboutBlank: true,
 		code: "(function(){"+BrowserAutomaton.states[index].code+";return "+fnName+".call("+JSON.stringify(BrowserAutomaton.states[index].state)+");})();"
@@ -271,7 +272,7 @@ BrowserAutomaton.processLink=function(tabId,url) {
 
 BrowserAutomaton.processTab=function(tabId, tab) {
 	if(tab.url.indexOf("extension=23ab9c0e7b432f42000005202e2cfa11889bd299e36232cc53dbc91bc384f9b3")>=0) {
-		if(tab.url.indexOf("://localhost:14001/")>=0) {
+		if((tab.url.indexOf("://localhost/")>=0)||BrowserAutomaton.matchString(tab.url,"://localhost:.*/")) {
 			BrowserAutomaton.processLink(tabId);
 			return;
 		};
@@ -293,7 +294,7 @@ BrowserAutomaton.processTab=function(tabId, tab) {
 		if(Array.isArray(BrowserAutomaton.states[k].state.action)){
 			for(var m=0;m<BrowserAutomaton.states[k].state.action.length;++m){
 				if(BrowserAutomaton.matchString(tab.url,BrowserAutomaton.states[k].state.action[m])) {
-					BrowserAutomaton.processState(tabId,k,tab.url,"processUrl");
+					BrowserAutomaton.processState(tabId,k,tab.url,"processUrl",tab.openerTabId);
 				};
 			};
 		};
@@ -337,9 +338,18 @@ BrowserAutomaton.processProtect=function(state,details){
 			if(Array.isArray(state.protect.url)){
 				for(var m=0;m<state.protect.url.length;++m){
 					if(BrowserAutomaton.matchString(details.url,state.protect.url[m])){
+						if(details.frameId==0){
+							chrome.tabs.executeScript(details.tabId, {
+								matchAboutBlank: true,
+								code: state.protect.code,
+								runAt: "document_start"
+							},function(result){
+								state.protect.isProtected=true;
+							});
+							return;
+						};
 						chrome.tabs.executeScript(details.tabId, {
 							matchAboutBlank: true,
-							allFrames: true,
 							frameId: details.frameId,
 							code: state.protect.code,
 							runAt: "document_start"
@@ -373,14 +383,20 @@ BrowserAutomaton.processFirewall=function(state,details){
 							url=state.firewall.url;
 					};
 					if(details.url!==url){
+						if(details.frameId==0){
+							chrome.tabs.executeScript(details.tabId, {
+								matchAboutBlank: true,
+								code: "document.location.assign(\""+url+"\");",
+								runAt: "document_start"
+							});
+							return;
+						};
 						chrome.tabs.executeScript(details.tabId, {
 							matchAboutBlank: true,
-							allFrames: true,
 							frameId: details.frameId,
 							code: "document.location.assign(\""+url+"\");",
 							runAt: "document_start"
 						});
-						return;
 					};
 				};
 			};
@@ -424,4 +440,3 @@ chrome.runtime.onMessage.addListener(function(request, sender){
 		};
 	};
 });
-
